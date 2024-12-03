@@ -30,6 +30,32 @@ export default function LiveScoresWidget() {
       });
   }, []);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setEvents((prevEvents) =>
+        prevEvents.map((event) => {
+          const now = Date.now();
+          const startTimestamp = event.currentPeriodStartTimestamp * 1000; // Convert to milliseconds
+          let durationMinutes = Math.floor((now - startTimestamp) / 60000); // Convert milliseconds to minutes
+
+          if (event.status_more.toLowerCase() === "halftime") {
+            return { ...event, currentMinute: 45 };
+          } else if (event.status_more.toLowerCase() === "2nd half") {
+            durationMinutes += 45; // Add 45 minutes for the second half
+          }
+
+          if (durationMinutes > 90) {
+            return { ...event, currentMinute: `90+${durationMinutes - 90}` };
+          }
+
+          return { ...event, currentMinute: durationMinutes };
+        })
+      );
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, [events]);
+
   if (loading) {
     return <div>Loading live events...</div>;
   }
@@ -64,33 +90,51 @@ export default function LiveScoresWidget() {
               <>
                 <h4 className="font-semibold text-md">{league}</h4>
                 {eventsByCompetition[league].map((event, idx) => (
-                  <>
-                    {/* <hr></hr> */}
-                    <div
-                      key={idx}
-                      className="mb-4 p-4 bg-[#292a2d] rounded-3xl hover:bg-gray-900 cursor-pointer transition-colors"
-                      onClick={() => navigate(`/event/${event.id}`)}
-                    >
-                      <div className="flex items-center">
-                        <img src={event.home_team.logo} alt={event.home_team.name_code} className="w-6 h-6 mr-2" />
-                        <div className="flex-1 text-right border-r border-gray-300 pr-2">
-                          <span>{event.home_team.name.length > 15 ? event.home_team.name.slice(0, 15) + '...' : event.home_team.name} : {event.home_score.current}</span>
-                        </div>
-                        <div className="flex-1 text-center">
-                        <span>{event.status_more}</span>
-                        </div>
+                  <div
+                    key={idx}
+                    className="mb-4 p-4 bg-[#292a2d] rounded-3xl hover:bg-gray-900 cursor-pointer transition-colors"
+                    onClick={() => navigate(`/event/${event.id}`)}
+                  >
+                    <div className="flex items-center">
+                      <img
+                        src={event.home_team.logo}
+                        alt={event.home_team.name_code}
+                        className="w-6 h-6 mr-2"
+                      />
+                      <div className="flex-1 text-right border-r border-gray-300 pr-2">
+                        <span>
+                          {event.home_team.name.length > 15
+                            ? event.home_team.name.slice(0, 15) + "..."
+                            : event.home_team.name}{" "}
+                          : {event.home_score.current}
+                        </span>
                       </div>
-                      <div className="flex items-center">
-                        <img src={event.away_team.logo} alt={event.away_team.name_code} className="w-6 h-6 mr-2" />
-                        <div className="flex-1 text-right border-r border-gray-300 pr-2">
-                          <span>{event.away_team.name.length > 15 ? event.away_team.name.slice(0, 15) + '...' : event.away_team.name} : {event.away_score.current}</span>
-                        </div>
-                        <div className="flex-1 text-center">
-                          <span>{event.time_details.currentPeriodStartTimestamp}</span>
-                        </div>
+                      <div className="flex-1 text-center">
+                        <span>{event.status_more}</span>
                       </div>
                     </div>
-                  </>
+                    <div className="flex items-center">
+                      <img
+                        src={event.away_team.logo}
+                        alt={event.away_team.name_code}
+                        className="w-6 h-6 mr-2"
+                      />
+                      <div className="flex-1 text-right border-r border-gray-300 pr-2">
+                        <span>
+                          {event.away_team.name.length > 15
+                            ? event.away_team.name.slice(0, 15) + "..."
+                            : event.away_team.name}{" "}
+                          : {event.away_score.current}
+                        </span>
+                      </div>
+                      <div className="flex-1 text-center">
+                        <span style={{ color: 'green' }}>
+                          Minute: {event.currentMinute}
+                          <span className="flashing-asterisk">*</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </>
             )}
